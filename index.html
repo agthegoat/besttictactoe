@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <style>
+        .container {
+            text-align: center;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            margin: 20px auto;
+            border: 2px solid black;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            cursor: pointer;
+        }
+
+        .cell:hover {
+            background-color: #ccc;
+        }
+
+        .x {
+            color: red;
+        }
+
+        .o {
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tic Tac Toe</h1>
+        <div id="board" class="board">
+            <div class="cell" onclick="playerMove(0)"></div>
+            <div class="cell" onclick="playerMove(1)"></div>
+            <div class="cell" onclick="playerMove(2)"></div>
+            <div class="cell" onclick="playerMove(3)"></div>
+            <div class="cell" onclick="playerMove(4)"></div>
+            <div class="cell" onclick="playerMove(5)"></div>
+            <div class="cell" onclick="playerMove(6)"></div>
+            <div class="cell" onclick="playerMove(7)"></div>
+            <div class="cell" onclick="playerMove(8)"></div>
+        </div>
+        <p id="status"></p>
+        <button onclick="resetGame()">Reset Game</button>
+        <button onclick="toggleAI()">Toggle AI</button>
+    </div>
+
+    <script>
+        const X_CLASS = 'x';
+        const O_CLASS = 'o';
+        let currentPlayer = X_CLASS;
+        let gameActive = true;
+        let aiEnabled = false; // AI mode disabled by default
+        const statusDisplay = document.getElementById('status');
+
+        const winningConditions = [
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8],
+            [0, 3, 6],
+            [1, 4, 7],
+            [2, 5, 8],
+            [0, 4, 8],
+            [2, 4, 6]
+        ];
+
+        const cells = document.querySelectorAll('.cell');
+
+        function playerMove(cellIndex) {
+            const currentCell = cells[cellIndex];
+            if (gameActive && !currentCell.classList.contains(X_CLASS) && !currentCell.classList.contains(O_CLASS)) {
+                currentCell.classList.add(currentPlayer);
+                currentCell.textContent = currentPlayer.toUpperCase();
+                if (checkWin(currentPlayer)) {
+                    endGame(false);
+                } else if (isDraw()) {
+                    endGame(true);
+                } else {
+                    if (aiEnabled && currentPlayer === O_CLASS) {
+                        setTimeout(() => {
+                            aiMove();
+                        }, 500); // Delay AI move for better user experience
+                    } else {
+                        swapPlayer();
+                    }
+                }
+            }
+        }
+
+        function aiMove() {
+            let bestScore = -Infinity;
+            let bestMove;
+            for (let i = 0; i < 9; i++) {
+                if (!cells[i].classList.contains(X_CLASS) && !cells[i].classList.contains(O_CLASS)) {
+                    cells[i].classList.add(O_CLASS);
+                    let score = minimax(cells, 0, false);
+                    cells[i].classList.remove(O_CLASS);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = i;
+                    }
+                }
+            }
+            playerMove(bestMove);
+        }
+
+        function minimax(board, depth, isMaximizing) {
+            let result = checkWinner();
+            if (result !== null) {
+                return result === 'o' ? 1 : result === 'x' ? -1 : 0;
+            }
+
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (!board[i].classList.contains(X_CLASS) && !board[i].classList.contains(O_CLASS)) {
+                        board[i].classList.add(O_CLASS);
+                        let score = minimax(board, depth + 1, false);
+                        board[i].classList.remove(O_CLASS);
+                        bestScore = Math.max(score, bestScore);
+                    }
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (!board[i].classList.contains(X_CLASS) && !board[i].classList.contains(O_CLASS)) {
+                        board[i].classList.add(X_CLASS);
+                        let score = minimax(board, depth + 1, true);
+                        board[i].classList.remove(X_CLASS);
+                        bestScore = Math.min(score, bestScore);
+                    }
+                }
+                return bestScore;
+            }
+        }
+
+        function checkWinner() {
+            for (let i = 0; i < winningConditions.length; i++) {
+                const [a, b, c] = winningConditions[i];
+                if (cells[a].classList.contains(X_CLASS) &&
+                    cells[b].classList.contains(X_CLASS) &&
+                    cells[c].classList.contains(X_CLASS)) {
+                    return 'x';
+                } else if (cells[a].classList.contains(O_CLASS) &&
+                    cells[b].classList.contains(O_CLASS) &&
+                    cells[c].classList.contains(O_CLASS)) {
+                    return 'o';
+                }
+            }
+            return null;
+        }
+
+        function checkWin(player) {
+            return winningConditions.some(combination => {
+                return combination.every(index => {
+                    return cells[index].classList.contains(player);
+                });
+            });
+        }
+
+        function isDraw() {
+            return [...cells].every(cell => {
+                return cell.classList.contains(X_CLASS) || cell.classList.contains(O_CLASS);
+            });
+        }
+
+        function endGame(draw) {
+            if (draw) {
+                statusDisplay.innerText = 'Draw!';
+            } else {
+                statusDisplay.innerText = `${currentPlayer.toUpperCase()} wins!`;
+            }
+            gameActive = false;
+        }
+
+        function swapPlayer() {
+            currentPlayer = currentPlayer === X_CLASS ? O_CLASS : X_CLASS;
+            statusDisplay.innerText = `Player ${currentPlayer.toUpperCase()}'s turn`;
+        }
+
+        function resetGame() {
+            cells.forEach(cell => {
+                cell.classList.remove(X_CLASS);
+                cell.classList.remove(O_CLASS);
+                cell.textContent = '';
+            });
+            gameActive = true;
+            currentPlayer = X_CLASS
+		;
+            statusDisplay.innerText = `Player ${currentPlayer.toUpperCase()}'s turn`;
+        }
+
+        function toggleAI() {
+            aiEnabled = !aiEnabled;
+            resetGame();
+            if (aiEnabled && currentPlayer === O_CLASS) {
+                aiMove(); // Ensure AI makes the first move when toggled on
+            }
+        }
+
+        statusDisplay.innerText = `Player ${currentPlayer.toUpperCase()}'s turn`;
+    </script>
+</body>
+</html>
